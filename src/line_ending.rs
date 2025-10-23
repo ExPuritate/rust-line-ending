@@ -78,6 +78,12 @@ impl From<&str> for LineEnding {
     }
 }
 
+impl const Default for LineEnding {
+    fn default() -> Self {
+        Self::from_current_platform()
+    }
+}
+
 impl LineEnding {
     /// Detects the default line ending based on the current operating system.
     ///
