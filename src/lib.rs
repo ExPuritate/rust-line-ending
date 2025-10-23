@@ -1,3 +1,10 @@
+#![feature(cfg_select)]
+#![feature(derive_const)]
+#![feature(const_default)]
+#![feature(const_trait_impl)]
+#![feature(const_cmp)]
+#![feature(const_clone)]
+
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");
 

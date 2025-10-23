@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
@@ -20,7 +18,46 @@ pub enum LineEnding {
 ///
 /// This is used in functions like [`LineEnding::score_mixed_types`] to track
 /// the distribution of line endings in a text.
-pub type LineEndingScores = HashMap<LineEnding, usize>;
+#[derive(Debug, Copy)]
+#[derive_const(Default, Clone, PartialEq, Eq)]
+pub struct LineEndingScores {
+    pub lf: usize,
+    pub crlf: usize,
+    pub cr: usize,
+}
+
+macro_rules! max {
+    () => {
+        Default::default()
+    };
+
+    ($x:expr $(, $rest:expr)*) => {
+        $x.max(max!($($rest),*))
+    };
+}
+
+impl LineEndingScores {
+    pub const fn get(&self, line_ending: &LineEnding) -> &usize {
+        match line_ending {
+            LineEnding::LF => &self.lf,
+            LineEnding::CRLF => &self.crlf,
+            LineEnding::CR => &self.cr,
+        }
+    }
+    pub const fn max(&self) -> usize {
+        max!(self.lf, self.crlf, self.cr)
+    }
+    pub const fn get_maximum_ending(&self) -> LineEnding {
+        let max = self.max();
+        match *self {
+            _ if max == 0 => LineEnding::CRLF,
+            Self { crlf, .. } if crlf == max => LineEnding::CRLF,
+            Self { lf, .. } if lf == max => LineEnding::LF,
+            Self { cr, .. } if cr == max => LineEnding::CR,
+            _ => LineEnding::LF,
+        }
+    }
+}
 
 impl From<&str> for LineEnding {
     /// Detects the predominant line ending style used in the input string.
@@ -37,24 +74,7 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
-        let scores = Self::score_mixed_types(s);
-
-        let crlf_score = *scores.get(&Self::CRLF).unwrap_or(&0);
-        let cr_score = *scores.get(&Self::CR).unwrap_or(&0);
-        let lf_score = *scores.get(&Self::LF).unwrap_or(&0);
-
-        // Select the highest count
-        let max_score = crlf_score.max(cr_score).max(lf_score);
-
-        if max_score == 0 || crlf_score == max_score {
-            // `CRLF` is chosen as a tie-breaker because it represents both `CR`
-            // and `LF`, making it the most inclusive option
-            Self::CRLF
-        } else if cr_score == max_score {
-            Self::CR
-        } else {
-            Self::LF
-        }
+        Self::score_mixed_types(s).get_maximum_ending()
     }
 }
 
@@ -72,11 +92,10 @@ impl LineEnding {
     /// let default_ending = LineEnding::from_current_platform();
     /// println!("Default line ending: {:?}", default_ending);
     /// ```
-    pub fn from_current_platform() -> Self {
-        if cfg!(windows) {
-            Self::CRLF
-        } else {
-            Self::LF
+    pub const fn from_current_platform() -> Self {
+        cfg_select! {
+            windows => { Self::CRLF }
+            _ => { Self::LF }
         }
     }
 
@@ -112,13 +131,11 @@ impl LineEnding {
         // Ensure LF is not double-counted when it's part of CRLF
         let lf_score = Self::LF.split_with(s).len().saturating_sub(1) - crlf_score;
 
-        [
-            (LineEnding::CRLF, crlf_score),
-            (LineEnding::CR, cr_score),
-            (LineEnding::LF, lf_score),
-        ]
-        .into_iter()
-        .collect()
+        LineEndingScores {
+            crlf: crlf_score,
+            cr: cr_score,
+            lf: lf_score,
+        }
     }
 
     /// Returns the string representation of the line ending (`\n`, `\r\n`, or `\r`).
@@ -132,7 +149,7 @@ impl LineEnding {
     /// assert_eq!(LineEnding::CRLF.as_str(), "\r\n");
     /// assert_eq!(LineEnding::CR.as_str(), "\r");
     /// ```
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
             Self::LF => "\n",
             Self::CRLF => "\r\n",
@@ -157,7 +174,7 @@ impl LineEnding {
     /// // The following call will panic:
     /// // LineEnding::CRLF.as_char();
     /// ```
-    pub fn as_char(&self) -> char {
+    pub const fn as_char(&self) -> char {
         match self {
             Self::LF => '\n',
             Self::CR => '\r',

@@ -142,13 +142,11 @@ mod tests {
         assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
         assert_eq!(
             LineEnding::score_mixed_types(mostly_lf,),
-            [
-                (LineEnding::CRLF, 1),
-                (LineEnding::CR, 1),
-                (LineEnding::LF, 4),
-            ]
-            .into_iter()
-            .collect::<LineEndingScores>()
+            LineEndingScores {
+                crlf: 1,
+                cr: 1,
+                lf: 4,
+            }
         );
 
         // Mixed with some LF and CR, but CRLF is dominant
@@ -156,13 +154,11 @@ mod tests {
         assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF);
         assert_eq!(
             LineEnding::score_mixed_types(mostly_crlf,),
-            [
-                (LineEnding::CRLF, 4),
-                (LineEnding::CR, 1),
-                (LineEnding::LF, 1),
-            ]
-            .into_iter()
-            .collect::<LineEndingScores>()
+            LineEndingScores {
+                crlf: 4,
+                cr: 1,
+                lf: 1,
+            }
         );
 
         // Mixed with some LF and CRLF, but CR is dominant
@@ -170,13 +166,11 @@ mod tests {
         assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR);
         assert_eq!(
             LineEnding::score_mixed_types(mostly_cr,),
-            [
-                (LineEnding::CRLF, 1),
-                (LineEnding::CR, 4),
-                (LineEnding::LF, 1),
-            ]
-            .into_iter()
-            .collect::<LineEndingScores>()
+            LineEndingScores {
+                crlf: 1,
+                cr: 4,
+                lf: 1,
+            }
         );
     }
 
