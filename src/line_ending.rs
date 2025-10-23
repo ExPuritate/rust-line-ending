@@ -84,6 +84,12 @@ impl const Default for LineEnding {
     }
 }
 
+impl const Default for &'static LineEnding {
+    fn default() -> Self {
+        LineEnding::from_current_platform_ref()
+    }
+}
+
 impl LineEnding {
     /// Detects the default line ending based on the current operating system.
     ///
@@ -102,6 +108,14 @@ impl LineEnding {
         cfg_select! {
             windows => { Self::CRLF }
             _ => { Self::LF }
+        }
+    }
+
+    /// See also [`Self::from_current_platform`]
+    pub const fn from_current_platform_ref() -> &'static Self {
+        cfg_select! {
+            windows => { &Self::CRLF }
+            _ => { &Self::LF }
         }
     }
 
